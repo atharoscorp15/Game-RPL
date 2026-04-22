@@ -1,4 +1,4 @@
-// File: D:\File Untuk Perkuliahan\File Tugas\Semester 4\Mircoteaching\logic-flow-app\app\layout.tsx
+// File: D:\File Untuk Perkuliahan\File Tugas\Semester 4\Mircoteaching\Game Ajar\Game-RPL\app\layout.tsx
 import * as entry from '../../../app/layout.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 
