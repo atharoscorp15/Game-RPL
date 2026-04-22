@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logic Quest </title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
+        body { font-family: 'Nunito', sans-serif; background-color: #0f172a; overflow-x: hidden; }
+        .avatar-part { font-size: 3.5rem; line-height: 1; user-select: none; transition: transform 0.2s; }
+        .avatar-container { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 180px; }
+        .code-box { font-family: 'Courier New', monospace; }
+        .floating { animation: float 3s ease-in-out infinite; }
+        @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-10px); } }
+        .dot-flashing { animation: dotFlashing 1s infinite linear alternate; }
+        @keyframes dotFlashing { 0% { opacity: 0.2; } 100% { opacity: 1; } }
+    </style>
+</head>
+<body class="text-white min-h-screen flex items-center justify-center p-4">
+
+    <audio id="bgm" src="https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3" loop></audio>
+    <audio id="sfx-click" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3"></audio>
+    <audio id="sfx-win" src="https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3"></audio>
+
+    <div id="app" class="max-w-2xl w-full bg-slate-800/90 backdrop-blur-xl rounded-[2rem] shadow-[0_0_40px_rgba(234,179,8,0.2)] border border-slate-700 p-8 animate__animated animate__zoomIn">
+        
+        <div id="login-screen" class="text-center">
+            <h1 class="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500 mb-2">LOGIC QUEST</h1>
+            <p class="text-slate-400 mb-6 font-bold italic">Buktikan kamu Master Logic RPL!</p>
+            
+            <div class="bg-slate-900/50 rounded-3xl p-6 mb-6 flex justify-center items-center gap-6 border border-slate-700">
+                <div class="flex flex-col gap-4">
+                    <button onclick="changePart('head', 1)" class="bg-slate-700 hover:bg-slate-600 p-3 rounded-full text-xl shadow-lg transition">▶</button>
+                    <button onclick="changePart('body', 1)" class="bg-slate-700 hover:bg-slate-600 p-3 rounded-full text-xl shadow-lg transition">▶</button>
+                    <button onclick="changePart('legs', 1)" class="bg-slate-700 hover:bg-slate-600 p-3 rounded-full text-xl shadow-lg transition">▶</button>
+                </div>
+                
+                <div class="avatar-container floating bg-slate-800 rounded-2xl w-40 border-2 border-dashed border-slate-600">
+                    <div id="av-head" class="avatar-part">🧑‍💻</div>
+                    <div id="av-body" class="avatar-part -mt-2">👕</div>
+                    <div id="av-legs" class="avatar-part -mt-3">👖</div>
+                </div>
+
+                <div class="flex flex-col gap-4">
+                    <button onclick="changePart('head', -1)" class="bg-slate-700 hover:bg-slate-600 p-3 rounded-full text-xl shadow-lg transition">◀</button>
+                    <button onclick="changePart('body', -1)" class="bg-slate-700 hover:bg-slate-600 p-3 rounded-full text-xl shadow-lg transition">◀</button>
+                    <button onclick="changePart('legs', -1)" class="bg-slate-700 hover:bg-slate-600 p-3 rounded-full text-xl shadow-lg transition">◀</button>
+                </div>
+            </div>
+
+            <input type="text" id="player-name" placeholder="Ketik Namamu..." class="w-full p-4 rounded-2xl bg-slate-900 border-2 border-slate-600 mb-4 text-center text-xl focus:border-yellow-400 outline-none transition-all">
+            <button onclick="masukLobby()" class="w-full bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-300 hover:to-orange-400 text-slate-900 font-black py-4 rounded-2xl text-xl shadow-xl transition-all transform hover:scale-[1.02]">MASUK KELAS 🚀</button>
+        </div>
+
+        <div id="admin-screen" class="hidden text-center">
+            <h2 class="text-3xl font-black text-yellow-400 mb-4">👨‍🏫 DASHBOARD GURU</h2>
+            <div class="grid grid-cols-1 gap-4 mb-6">
+                <button id="btn-mulai" onclick="mulaiGameSiswa()" class="bg-green-500 hover:bg-green-400 text-slate-900 font-bold py-5 rounded-xl text-lg shadow-lg transition-all transform hover:scale-[1.02]">🟢 MULAI GAME UNTUK SISWA</button>
+                <button onclick="ubahStatusGame('finished')" class="bg-blue-500 hover:bg-blue-400 text-slate-900 font-bold py-5 rounded-xl text-lg shadow-lg transition-all transform hover:scale-[1.02]">🏆 TAMPILKAN JUARA</button>
+            </div>
+            
+            <p class="text-slate-500 text-sm italic mt-8">*Catatan: Untuk mengakhiri dan mereset kelas, silakan klik tombol Kembali di layar Juara nanti.</p>
+        </div>
+
+        <div id="waiting-screen" class="hidden text-center py-10">
+            <div class="text-6xl mb-6 floating">⏳</div>
+            <h2 class="text-2xl font-bold text-yellow-400 mb-2">Tunggu Sebentar...</h2>
+            <p class="text-slate-400 text-lg">Pak Dahril sedang menyiapkan soal untukmu <span class="dot-flashing">...</span></p>
+        </div>
+
+        <div id="game-screen" class="hidden">
+            <div class="flex justify-between items-center mb-6">
+                <span id="display-name" class="font-bold text-yellow-400 bg-slate-900 px-4 py-1 rounded-full"></span>
+                <div class="text-right">
+                    <div id="progress" class="text-xs text-slate-400 font-bold mb-1">SOAL 1/10</div>
+                    <div id="live-score" class="bg-green-500 px-3 py-1 rounded-full text-xs font-bold">SKOR: 0</div>
+                </div>
+            </div>
+            <div class="bg-slate-950 p-6 rounded-3xl mb-6 border-2 border-slate-700 min-h-[150px] flex items-center">
+                <pre id="code-display" class="code-box text-blue-300 text-lg md:text-xl whitespace-pre-wrap w-full"></pre>
+            </div>
+            <div id="options" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+        </div>
+
+        <div id="waiting-result-screen" class="hidden text-center py-10">
+            <div class="text-6xl mb-6 floating">🎉</div>
+            <h2 class="text-2xl font-bold text-green-400 mb-2">Kamu Selesai!</h2>
+            <p class="text-slate-400 text-lg">Tunggu Pak Dahril mengumumkan hasilnya <span class="dot-flashing">...</span></p>
+        </div>
+
+        <div id="leaderboard-screen" class="hidden">
+            <h2 class="text-4xl font-black text-center text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500 mb-8">🏆 HALL OF FAME</h2>
+            <div id="leader-list" class="space-y-3 mb-8"></div>
+            <button onclick="tombolKembali()" class="w-full bg-slate-700 hover:bg-slate-600 py-4 rounded-2xl font-bold text-lg shadow-lg">KEMBALI KE AWAL</button>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://zlehyddlqogzxwmwbbga.supabase.co'; 
+        const SUPABASE_KEY = 'sb_publishable_2Qad2gug9wg5eayjVUOViw_afc51fS3'; 
+        
+        let supabaseDb = null;
+        try {
+            supabaseDb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        } catch(e) { console.error("Koneksi Supabase Gagal!"); }
+
+        const avatars = {
+            head: ['🧑', '🤖', '🐱', '🤠', '👽', '🧙‍♂️',],
+            body: ['👕', '🟥', '🥼', '🥋', '🦺', '👔'], 
+            legs: ['👖', '🩳', '🦾', '🛹', '🧜‍♂️']
+        };
+        let avIdx = { head: 0, body: 0, legs: 0 };
+
+        function updateAvatarUI() {
+            document.getElementById('av-head').innerText = avatars.head[avIdx.head];
+            document.getElementById('av-body').innerText = avatars.body[avIdx.body];
+            document.getElementById('av-legs').innerText = avatars.legs[avIdx.legs];
+        }
+
+        function changePart(part, dir) {
+            playSound('sfx-click');
+            avIdx[part] += dir;
+            if (avIdx[part] < 0) avIdx[part] = avatars[part].length - 1;
+            if (avIdx[part] >= avatars[part].length) avIdx[part] = 0;
+            updateAvatarUI();
+        }
+
+        const questions = [
+            { q: "x = 10\nif x > 5:\n  print('Lulus')\nelse:\n  print('Remidi')", options: ["Lulus", "Remidi", "Error", "10"], ans: "Lulus" },
+            { q: "for i in range(3):\n  print('RPL')", options: ["RPL", "RPL RPL", "RPL RPL RPL", "Error"], ans: "RPL RPL RPL" },
+            { q: "total = 45000\nif total >= 50000:\n  print('Gratis')\nelse:\n  print('Bayar')", options: ["Gratis", "Bayar", "None", "Error"], ans: "Bayar" },
+            { q: "i = 1\nwhile i < 3:\n  print(i)\n  i += 1", options: ["1, 2", "1, 2, 3", "0", "3"], ans: "1, 2" },
+            { q: "umur = 17\nif umur == 17:\n  print('KTP')\nelse:\n  print('Belum')", options: ["Belum", "KTP", "17", "Error"], ans: "KTP" },
+            { q: "x = 8\nif x % 2 == 0:\n  print('Genap')\nelse:\n  print('Ganjil')", options: ["Ganjil", "Genap", "0", "8"], ans: "Genap" },
+            { q: "for i in range(1, 4):\n  print(i)", options: ["1, 2, 3, 4", "1, 2, 3", "0, 1, 2", "Error"], ans: "1, 2, 3" },
+            { q: "pwd = '123'\nif pwd == '123':\n  print('OK')\nelse:\n  print('No')", options: ["No", "OK", "123", "Error"], ans: "OK" },
+            { q: "x = 5\nx += 2\nprint(x)", options: ["5", "2", "7", "52"], ans: "7" },
+            { q: "nilai = 75\nif nilai > 80:\n  print('A')\nelif nilai > 60:\n  print('B')", options: ["A", "B", "C", "Error"], ans: "B" }
+        ];
+
+        let playerName = "";
+        let currentQuestion = 0;
+        let score = 0;
+        let currentScreen = "login";
+        let pollInterval;
+
+        function playSound(id) {
+            const sfx = document.getElementById(id);
+            if(sfx) { sfx.currentTime = 0; sfx.play().catch(()=>{}); }
+        }
+
+        function switchScreen(screenId) {
+            document.querySelectorAll('#app > div').forEach(el => el.classList.add('hidden'));
+            document.getElementById(screenId).classList.remove('hidden');
+            currentScreen = screenId;
+        }
+
+        async function masukLobby() {
+            playerName = document.getElementById('player-name').value.trim();
+            if(!playerName) {
+                Swal.fire({ title: 'Nama Kosong!', icon: 'warning', background: '#1e293b', color: '#fff' });
+                return;
+            }
+            playSound('sfx-click');
+            document.getElementById('bgm').play().catch(()=>{});
+
+            if(playerName.toLowerCase() === 'dahril' || playerName.toLowerCase() === 'pak dahril') {
+                switchScreen('admin-screen');
+            } else {
+                switchScreen('waiting-screen');
+                mulaiCekStatus();
+            }
+        }
+
+        // FUNGSI KHUSUS TOMBOL MULAI (SEKALI TEKAN LANGSUNG DISABLE)
+        async function mulaiGameSiswa() {
+            const btnMulai = document.getElementById('btn-mulai');
+            btnMulai.disabled = true;
+            btnMulai.className = "bg-slate-600 text-slate-400 font-bold py-5 rounded-xl text-lg shadow-inner cursor-not-allowed";
+            btnMulai.innerText = "⏳ GAME SEDANG BERJALAN...";
+            ubahStatusGame('playing');
+        }
+
+        async function ubahStatusGame(statusBaru) {
+            playSound('sfx-click');
+            if(supabaseDb) {
+                await supabaseDb.from('game_control').update({ status: statusBaru }).eq('id', 1);
+                if(statusBaru === 'finished') { 
+                    tampilkanJuara(); 
+                } else if (statusBaru === 'playing') {
+                    Swal.fire({ title: 'Game Dimulai!', text: 'Siswa sekarang sedang mengerjakan.', icon: 'success', timer: 1500, showConfirmButton: false });
+                }
+            }
+        }
+
+        // FUNGSI TOMBOL KEMBALI OTOMATIS HAPUS (KHUSUS DAHRIL)
+        async function tombolKembali() {
+            playSound('sfx-click');
+            const isAdmin = (playerName.toLowerCase() === 'dahril' || playerName.toLowerCase() === 'pak dahril');
+            
+            if (isAdmin && supabaseDb) {
+                Swal.fire({ 
+                    title: 'Membersihkan Kelas...', 
+                    text: 'Data kelas ini sedang dihapus.',
+                    allowOutsideClick: false, 
+                    showConfirmButton: false,
+                    background: '#1e293b', 
+                    color: '#fff'
+                });
+                
+                // Menghapus semua baris di tabel scores
+                await supabaseDb.from('scores').delete().not('player_name', 'is', null);
+                // Kembalikan status kelas ke ruang tunggu
+                await supabaseDb.from('game_control').update({ status: 'waiting' }).eq('id', 1);
+            }
+            
+            // Reload halaman untuk kembali ke menu awal
+            location.reload();
+        }
+
+        function mulaiCekStatus() {
+            pollInterval = setInterval(async () => {
+                if(!supabaseDb) return;
+                const { data } = await supabaseDb.from('game_control').select('status').eq('id', 1).single();
+                if(data) {
+                    if(currentScreen === 'waiting-screen' && data.status === 'playing') { clearInterval(pollInterval); mulaiMain(); } 
+                    else if(currentScreen === 'waiting-result-screen' && data.status === 'finished') { clearInterval(pollInterval); tampilkanJuara(); }
+                }
+            }, 2000);
+        }
+
+        function mulaiMain() {
+            switchScreen('game-screen');
+            document.getElementById('display-name').innerText = "👤 " + playerName;
+            showQuestion();
+        }
+
+        function showQuestion() {
+            const q = questions[currentQuestion];
+            document.getElementById('progress').innerText = `SOAL ${currentQuestion + 1}/${questions.length}`;
+            document.getElementById('code-display').innerText = q.q;
+            const optionsDiv = document.getElementById('options');
+            optionsDiv.innerHTML = "";
+            q.options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.innerText = opt;
+                btn.className = "bg-slate-700 hover:bg-blue-600 p-4 rounded-xl font-bold transition-all transform active:scale-95 text-sm";
+                btn.onclick = () => checkAnswer(opt);
+                optionsDiv.appendChild(btn);
+            });
+        }
+
+        async function checkAnswer(val) {
+            playSound('sfx-click');
+            if(val === questions[currentQuestion].ans) {
+                score += 10;
+                document.getElementById('live-score').innerText = `SKOR: ${score}`;
+                Swal.fire({ title: '🔥', icon: 'success', timer: 600, showConfirmButton: false, background: '#1e293b' });
+            } else {
+                Swal.fire({ title: '😅', icon: 'error', timer: 600, showConfirmButton: false, background: '#1e293b' });
+            }
+            currentQuestion++;
+            if(currentQuestion < questions.length) { setTimeout(showQuestion, 700); } 
+            else { setTimeout(selesaiMainSiswa, 700); }
+        }
+
+        async function selesaiMainSiswa() {
+            const finalAvatar = `${avatars.head[avIdx.head]}${avatars.body[avIdx.body]}${avatars.legs[avIdx.legs]}`;
+            if(supabaseDb) { await supabaseDb.from('scores').insert([{ player_name: playerName, score: score, avatar: finalAvatar }]); }
+            switchScreen('waiting-result-screen');
+            mulaiCekStatus(); 
+        }
+
+        async function tampilkanJuara() {
+            playSound('sfx-win');
+            switchScreen('leaderboard-screen');
+            confetti({ particleCount: 200, spread: 100, origin: { y: 0.6 } });
+            const list = document.getElementById('leader-list');
+            try {
+                const { data } = await supabaseDb.from('scores').select('*').order('score', { ascending: false }).limit(5);
+                if(data && data.length > 0) {
+                    list.innerHTML = data.map((item, idx) => `
+                        <div class="flex justify-between items-center p-4 bg-slate-900 rounded-2xl ${idx === 0 ? 'border-2 border-yellow-500 shadow-lg animate__animated animate__pulse animate__infinite' : 'border border-slate-700'}">
+                            <div class="flex items-center gap-3">
+                                <span class="font-black text-xl text-slate-500">#${idx + 1}</span>
+                                <div class="flex flex-col items-center leading-[0.8] scale-75">
+                                    <span>${item.avatar[0]}${item.avatar[1]}</span>
+                                    <span>${item.avatar[2]}${item.avatar[3]}</span>
+                                    <span>${item.avatar[4]}${item.avatar[5]}</span>
+                                </div>
+                                <span class="font-bold text-lg">${item.player_name}</span>
+                            </div>
+                            <span class="font-black text-yellow-400 text-lg">${item.score}</span>
+                        </div>
+                    `).join('');
+                }
+            } catch(e) { console.log("Gagal memuat leaderboard"); }
+        }
+
+        window.onload = updateAvatarUI;
+    </script>
+</body>
+</html>
