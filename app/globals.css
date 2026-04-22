@@ -1,0 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Opsional: Kamu bisa menambahkan background default di sini */
+body {
+  @apply bg-slate-50 text-slate-900;
+}
