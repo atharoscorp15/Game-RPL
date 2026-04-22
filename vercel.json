@@ -3,4 +3,8 @@
   "installCommand": "npm install",
   "framework": "nextjs",
   "outputDirectory": ".next",
+  "env": {
+    "NEXT_PUBLIC_SUPABASE_URL": "https://zlehyddlqogzxwmwbbga.supabase.co",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_2Qad2gug9wg5eayjVUOViw_afc51fS3"
+  }
 }
